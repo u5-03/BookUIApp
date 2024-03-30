@@ -8,18 +8,6 @@
 import SwiftUI
 import Observation
 
-extension Color {
-    static var random: Color {
-        // 0.0から1.0の範囲でランダムな値を生成
-        let red = Double.random(in: 0...1)
-        let green = Double.random(in: 0...1)
-        let blue = Double.random(in: 0...1)
-
-        // 生成したランダムな値でColorを作成
-        return Color(red: red, green: green, blue: blue)
-    }
-}
-
 enum PageSwipeStatus {
     case left
     case right
@@ -30,6 +18,9 @@ enum PageType {
     case left
     case right
 
+    private static let maxAngle: CGFloat = 180
+    private static let initialPageAngle: CGFloat = 10
+
     var isLeft: Bool {
         return self == .left
     }
@@ -37,18 +28,18 @@ enum PageType {
     var defaultAngle: CGFloat {
         switch self {
         case .left:
-            return 0
+            return PageType.initialPageAngle
         case .right:
-            return 0
+            return -PageType.initialPageAngle
         }
     }
 
-    var maxAngle: CGFloat {
+    var moveMaxAngle: CGFloat {
         switch self {
         case .left:
-            return 180
+            return PageType.maxAngle - defaultAngle * 2
         case .right:
-            return -180
+            return -PageType.maxAngle + -defaultAngle * 2
         }
     }
 
@@ -63,16 +54,19 @@ enum PageType {
 }
 
 enum PageLayer {
-    case top(pageView: PageView)
-    case second(view: AnyView, id: String)
+    case top(pageView: PageView, animationRatio: CGFloat)
+    case second(view: AnyView, animationRatio: CGFloat)
+    case empty
 
     @ViewBuilder
     var view: some View {
         switch self {
-        case .top(let pageView):
+        case .top(let pageView, _):
             pageView
         case .second(let image, _):
             image
+        case .empty:
+            EmptyView()
         }
     }
 }
@@ -127,12 +121,9 @@ struct ContentView: View {
 
     func image(fileName: String) -> AnyView {
         return AnyView(
-            ZStack {
-                Image(fileName)
-                    .resizable()
-                    .clipped()
-            }
-                .id(fileName)
+            Image(fileName)
+                .resizable()
+                .clipped()
         )
     }
 
@@ -140,25 +131,27 @@ struct ContentView: View {
         GeometryReader { geometry in
             ZStack {
                 HStack(spacing: 0) {
-                    ZStack(alignment: .center) {
-                        ForEach(leftPageStack.indices, id: \.self) { index in
-                            leftPageStack[index].view
-                        }
-                    }
-                    .frame(width: geometry.size.width / 2, height: geometry.size.height)
-                    .scaledToFit()
-                    .zIndex(leftPageIndex)
-                    ZStack(alignment: .center) {
-                        ForEach(rightPageStack.indices, id: \.self) { index in
-                            rightPageStack[index].view
-                        }
-                    }
-                    .frame(width: geometry.size.width / 2, height: geometry.size.height)
-                    .scaledToFit()
-                    .zIndex(rightPageIndex)
+                    pageStackView(
+                        pageStack: leftPageStack,
+                        pageZIndex: leftPageIndex,
+                        pageType: .left,
+                        pageSize: .init(width: geometry.size.width / 2, height: geometry.size.height)
+                    )
+                    pageStackView(
+                        pageStack: rightPageStack,
+                        pageZIndex: rightPageIndex,
+                        pageType: .right,
+                        pageSize: .init(width: geometry.size.width / 2, height: geometry.size.height)
+                    )
                 }
             }
             .ignoresSafeArea()
+            .rotation3DEffect(
+                Angle(degrees: 20),
+                axis: (x: CGFloat(6), y: 0, z: CGFloat(0)),
+                anchor: .center,
+                perspective: 1
+            )
             // Left page
             .gesture(
                 DragGesture()
@@ -168,7 +161,7 @@ struct ContentView: View {
                         if isLeftPageSwipe {
                             self.pageSwipeStatus = .left
                             let dragXAmount = min(
-                                abs(value.location.x - value.startLocation.x),
+                                max(value.location.x - value.startLocation.x, 0),
                                 geometry.size.width
                             )
                             let leftAnimationRatio = min(dragXAmount / geometry.size.width, 1)
@@ -182,10 +175,6 @@ struct ContentView: View {
                         let dragStartPoint = value.startLocation
                         let isLeftPageSwipe = dragStartPoint.x < geometry.size.width / 2
                         if isLeftPageSwipe {
-                            let endedLeftAnimationRatio = min(
-                                abs(value.location.x - value.startLocation.x),
-                                geometry.size.width
-                            )
                             let isInLeftPage = value.location.x < geometry.size.width / 2
                             withAnimation {
                                 adjustLeftPages(
@@ -216,7 +205,7 @@ struct ContentView: View {
                         if isRightPageSwipe {
                             self.pageSwipeStatus = .right
                             let dragXAmount = min(
-                                abs(value.location.x - value.startLocation.x),
+                                max(value.startLocation.x - value.location.x, 0),
                                 geometry.size.width
                             )
                             let rightAnimationRatio = min(dragXAmount / geometry.size.width, 1)
@@ -230,10 +219,6 @@ struct ContentView: View {
                         let dragStartPoint = value.startLocation
                         let isRightPageSwipe = dragStartPoint.x > geometry.size.width / 2
                         if isRightPageSwipe {
-                            let endedRightAnimationRatio =  min(
-                                abs(value.location.x - value.startLocation.x),
-                                geometry.size.width
-                            )
                             let isInRightPage = value.location.x > geometry.size.width / 2
                             withAnimation {
                                 adjustRightPages(
@@ -265,7 +250,40 @@ struct ContentView: View {
                 )
             }
         }
-        .padding()
+        .padding(.all, 30)
+        .padding(.horizontal, 80)
+    }
+}
+
+private extension ContentView {
+    func pageStackView(pageStack: [PageLayer], pageZIndex: Double, pageType: PageType,  pageSize: CGSize) -> some View {
+        return ZStack(alignment: .center) {
+            ForEach(pageStack.indices, id: \.self) { index in
+                switch pageStack[index] {
+                case .top(let pageView, let animationRatio):
+                    pageView
+                        .rotation3DEffect(
+                            Angle(degrees: pageType.defaultAngle + animationRatio * pageType.moveMaxAngle),
+                            axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                            anchor: pageType.anchor,
+                            perspective: 0.3
+                        )
+                case .second(let view, let animationRatio):
+                    view
+                        .rotation3DEffect(
+                            Angle(degrees: pageType.defaultAngle * animationRatio),
+                            axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                            anchor: pageType.anchor,
+                            perspective: 0.3
+                        )
+                case .empty:
+                    EmptyView()
+                }
+            }
+        }
+        .frame(width: pageSize.width, height: pageSize.height)
+        .scaledToFill()
+        .zIndex(pageZIndex)
     }
 }
 
@@ -275,30 +293,39 @@ private extension ContentView {
         adjustRightPages(currentRightPageIndex: currentRightPageIndex, rightAnimationRatio: rightAnimationRatio)
 
     }
+
     func adjustLeftPages(currentLeftPageIndex: Int, leftAnimationRatio: CGFloat) {
         leftPageStack = [
-            .second(view: AnyView(image(fileName: images[currentLeftPageIndex - 2])), id: UUID().uuidString),
+            .second(
+                view: AnyView(image(fileName: images[currentLeftPageIndex - 2])),
+                animationRatio: leftAnimationRatio
+            ),
             .top(
                 pageView: PageView(
                     pageType: .left,
                     animationRatio: leftAnimationRatio,
                     front: AnyView(image(fileName: images[currentLeftPageIndex])),
                     back:  AnyView(image(fileName: images[currentLeftPageIndex - 1]))
-                )
+                ),
+                animationRatio: leftAnimationRatio
             ),
         ]
     }
 
     func adjustRightPages(currentRightPageIndex: Int, rightAnimationRatio: CGFloat) {
         rightPageStack = [
-            .second(view: AnyView(image(fileName: images[currentRightPageIndex + 2])), id: UUID().uuidString),
+            .second(
+                view: AnyView(image(fileName: images[currentRightPageIndex + 2])),
+                animationRatio: rightAnimationRatio
+            ),
             .top(
                 pageView: PageView(
                     pageType: .right,
                     animationRatio: rightAnimationRatio,
                     front: AnyView(image(fileName: images[currentRightPageIndex])),
                     back: AnyView(image(fileName: images[currentRightPageIndex + 1]))
-                )
+                ),
+                animationRatio: rightAnimationRatio
             ),
         ]
     }
@@ -311,7 +338,6 @@ struct PageView: View {
     let back: AnyView
 
     var body: some View {
-        let _ = print(animationRatio)
         ZStack(alignment: .center) {
             if animationRatio < 0.5 {
                 front
@@ -325,12 +351,6 @@ struct PageView: View {
                     )
             }
         }
-        .rotation3DEffect(
-            Angle(degrees: animationRatio * pageType.maxAngle),
-            axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
-            anchor: pageType.anchor,
-            perspective: 0.5
-        )
     }
 }
 
