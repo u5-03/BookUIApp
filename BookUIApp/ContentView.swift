@@ -62,7 +62,7 @@ enum PageType {
     }
 }
 
-enum PageLayer: Identifiable {
+enum PageLayer {
     case top(pageView: PageView)
     case second(view: AnyView, id: String)
 
@@ -73,15 +73,6 @@ enum PageLayer: Identifiable {
             pageView
         case .second(let image, _):
             image
-        }
-    }
-
-    var id: String {
-        switch self {
-        case .top(let pageView):
-            return pageView.id + pageView.animationRatio.description
-        case .second(_, let id):
-            return id
         }
     }
 }
@@ -106,11 +97,21 @@ struct ContentView: View {
         "image3",
         "image4",
         "image5",
+        "image0",
+        "image1",
+        "image2",
+        "image3",
+        "image4",
+        "image5",
+        "image0",
+        "image1",
+        "image2",
+        "image3",
+        "image4",
+        "image5",
     ]
-    static let maxPage = 100
-    let texts = Array(0...maxPage).map(\.description)
 
-    @State private var currentLeftPageIndex = 5
+    @State private var currentLeftPageIndex = 10
     private var currentRightPageIndex: Int {
         currentLeftPageIndex + 1
     }
@@ -134,15 +135,6 @@ struct ContentView: View {
                 .id(fileName)
         )
     }
-
-//    func textView(text: String) -> AnyView {
-//        return AnyView(
-//            Text(text)
-//                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-//                .background(Color.red)
-//                .id(text)
-//        )
-//    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -172,7 +164,8 @@ struct ContentView: View {
                 DragGesture()
                     .onChanged { value in
                         let dragStartPoint = value.startLocation
-                        if dragStartPoint.x < geometry.size.width / 2 {
+                        let isLeftPageSwipe = dragStartPoint.x < geometry.size.width / 2
+                        if isLeftPageSwipe {
                             self.pageSwipeStatus = .left
                             let dragXAmount = min(
                                 abs(value.location.x - value.startLocation.x),
@@ -187,18 +180,20 @@ struct ContentView: View {
                     }
                     .onEnded { value in
                         let dragStartPoint = value.startLocation
-                        if dragStartPoint.x < geometry.size.width / 2 {
+                        let isLeftPageSwipe = dragStartPoint.x < geometry.size.width / 2
+                        if isLeftPageSwipe {
                             let endedLeftAnimationRatio = min(
                                 abs(value.location.x - value.startLocation.x),
                                 geometry.size.width
                             )
+                            let isInLeftPage = value.location.x < geometry.size.width / 2
                             withAnimation {
                                 adjustLeftPages(
                                     currentLeftPageIndex: currentLeftPageIndex,
-                                    leftAnimationRatio: endedLeftAnimationRatio > 0.5 ? 1 : 0
+                                    leftAnimationRatio: isInLeftPage ? 0 : 1
                                 )
                             } completion: {
-                                if endedLeftAnimationRatio > 0.5 {
+                                if !isInLeftPage {
                                     currentLeftPageIndex -= 2
                                 }
                                 pageSwipeStatus = .notSwipe
@@ -217,7 +212,8 @@ struct ContentView: View {
                 DragGesture()
                     .onChanged { value in
                         let dragStartPoint = value.startLocation
-                        if dragStartPoint.x > geometry.size.width / 2 {
+                        let isRightPageSwipe = dragStartPoint.x > geometry.size.width / 2
+                        if isRightPageSwipe {
                             self.pageSwipeStatus = .right
                             let dragXAmount = min(
                                 abs(value.location.x - value.startLocation.x),
@@ -232,19 +228,21 @@ struct ContentView: View {
                     }
                     .onEnded { value in
                         let dragStartPoint = value.startLocation
-                        if dragStartPoint.x > geometry.size.width / 2 {
+                        let isRightPageSwipe = dragStartPoint.x > geometry.size.width / 2
+                        if isRightPageSwipe {
                             let endedRightAnimationRatio =  min(
                                 abs(value.location.x - value.startLocation.x),
                                 geometry.size.width
                             )
+                            let isInRightPage = value.location.x > geometry.size.width / 2
                             withAnimation {
                                 adjustRightPages(
                                     currentRightPageIndex: currentRightPageIndex,
-                                    rightAnimationRatio: endedRightAnimationRatio > 0.5 ? 1 : 0
+                                    rightAnimationRatio: isInRightPage ? 0 : 1
                                 )
 
                             } completion: {
-                                if endedRightAnimationRatio > 0.5 {
+                                if !isInRightPage {
                                     currentLeftPageIndex += 2
                                 }
                                 pageSwipeStatus = .notSwipe
@@ -306,15 +304,11 @@ private extension ContentView {
     }
 }
 
-struct PageView: View, Identifiable {
+struct PageView: View {
     let pageType: PageType
     let animationRatio: CGFloat
     let front: AnyView
     let back: AnyView
-
-    var id: String {
-        return pageType.anchor.hashValue.description + animationRatio.description
-    }
 
     var body: some View {
         let _ = print(animationRatio)
