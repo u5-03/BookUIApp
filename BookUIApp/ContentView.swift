@@ -6,6 +6,25 @@
 //
 
 import SwiftUI
+import Observation
+
+extension Color {
+    static var random: Color {
+        // 0.0から1.0の範囲でランダムな値を生成
+        let red = Double.random(in: 0...1)
+        let green = Double.random(in: 0...1)
+        let blue = Double.random(in: 0...1)
+
+        // 生成したランダムな値でColorを作成
+        return Color(red: red, green: green, blue: blue)
+    }
+}
+
+enum PageSwipeStatus {
+    case left
+    case right
+    case notSwipe
+}
 
 enum PageType {
     case left
@@ -43,17 +62,26 @@ enum PageType {
     }
 }
 
-enum PageLayer {
-    case first(pageView: PageView)
-    case second(image: Image)
+enum PageLayer: Identifiable {
+    case top(pageView: PageView)
+    case second(view: AnyView, id: String)
 
     @ViewBuilder
     var view: some View {
         switch self {
-        case .first(let pageView):
+        case .top(let pageView):
             pageView
-        case .second(let image):
+        case .second(let image, _):
             image
+        }
+    }
+
+    var id: String {
+        switch self {
+        case .top(let pageView):
+            return pageView.id + pageView.animationRatio.description
+        case .second(_, let id):
+            return id
         }
     }
 }
@@ -66,15 +94,35 @@ struct ContentView: View {
         "image3",
         "image4",
         "image5",
+        "image0",
+        "image1",
+        "image2",
+        "image3",
+        "image4",
+        "image5",
+        "image0",
+        "image1",
+        "image2",
+        "image3",
+        "image4",
+        "image5",
     ]
+    static let maxPage = 100
+    let texts = Array(0...maxPage).map(\.description)
 
-    @State private var currentLeftPageIndex = 4
+    @State private var currentLeftPageIndex = 5
+    private var currentRightPageIndex: Int {
+        currentLeftPageIndex + 1
+    }
     @State private var leftPageStack: [PageLayer] = []
     @State private var rightPageStack: [PageLayer] = []
-    @State private var leftAnimationRatio: CGFloat = 0
-    @State private var rightAnimationRatio: CGFloat = 0
-    @State private var dragStartPoint: CGPoint = .zero
-    @State private var dragXAmount: CGFloat?
+    @State private var pageSwipeStatus: PageSwipeStatus = .notSwipe
+    private var leftPageIndex: Double {
+        return pageSwipeStatus == .left ? 1 : 0
+    }
+    private var rightPageIndex: Double {
+        return pageSwipeStatus == .right ? 1 : 0
+    }
 
     func image(fileName: String) -> AnyView {
         return AnyView(
@@ -83,121 +131,212 @@ struct ContentView: View {
                     .resizable()
                     .clipped()
             }
+                .id(fileName)
         )
     }
 
+//    func textView(text: String) -> AnyView {
+//        return AnyView(
+//            Text(text)
+//                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+//                .background(Color.red)
+//                .id(text)
+//        )
+//    }
+
     var body: some View {
         GeometryReader { geometry in
-            HStack(spacing: 0) {
-                ZStack(alignment: .center) {
-                    ForEach(leftPageStack.indices, id: \.self) { index in
-                        leftPageStack[index].view
+            ZStack {
+                HStack(spacing: 0) {
+                    ZStack(alignment: .center) {
+                        ForEach(leftPageStack.indices, id: \.self) { index in
+                            leftPageStack[index].view
+                        }
                     }
-                }
-                .frame(width: geometry.size.width / 2)
-                .scaledToFit()
-                ZStack(alignment: .center) {
-//                    Color.blue
-//                    ForEach(rightPageStack.indices, id: \.self) { index in
-//                        rightPageStack[index].view
-//                            .frame(width: geometry.size.width / 2)
-//                    }
+                    .frame(width: geometry.size.width / 2, height: geometry.size.height)
+                    .scaledToFit()
+                    .zIndex(leftPageIndex)
+                    ZStack(alignment: .center) {
+                        ForEach(rightPageStack.indices, id: \.self) { index in
+                            rightPageStack[index].view
+                        }
+                    }
+                    .frame(width: geometry.size.width / 2, height: geometry.size.height)
+                    .scaledToFit()
+                    .zIndex(rightPageIndex)
                 }
             }
             .ignoresSafeArea()
+            // Left page
             .gesture(
                 DragGesture()
                     .onChanged { value in
-                        dragStartPoint = value.startLocation
-                        self.dragXAmount = dragXAmount
+                        let dragStartPoint = value.startLocation
                         if dragStartPoint.x < geometry.size.width / 2 {
-                            print("DragXAmount: \(dragXAmount), \(leftAnimationRatio)")
-                            let dragXAmount = value.location.x - value.startLocation.x
-                            leftAnimationRatio = min(dragXAmount / geometry.size.width, 1)
-                        } else {
-                            print("DragXAmount: \(dragXAmount), \(rightAnimationRatio)")
-                            let dragXAmount = value.startLocation.x - value.location.x
-                            rightAnimationRatio = min(dragXAmount / geometry.size.width, 1)
+                            self.pageSwipeStatus = .left
+                            let dragXAmount = min(
+                                abs(value.location.x - value.startLocation.x),
+                                geometry.size.width
+                            )
+                            let leftAnimationRatio = min(dragXAmount / geometry.size.width, 1)
+                            adjustLeftPages(
+                                currentLeftPageIndex: currentLeftPageIndex,
+                                leftAnimationRatio: leftAnimationRatio
+                            )
                         }
                     }
                     .onEnded { value in
-                        dragStartPoint = .zero
-                        dragXAmount = nil
+                        let dragStartPoint = value.startLocation
                         if dragStartPoint.x < geometry.size.width / 2 {
-                            leftAnimationRatio = leftAnimationRatio > 0.5 ? 1 : 0
-                        } else {
-                            rightAnimationRatio = rightAnimationRatio > 0.5 ? 1 : 0
+                            let endedLeftAnimationRatio = min(
+                                abs(value.location.x - value.startLocation.x),
+                                geometry.size.width
+                            )
+                            withAnimation {
+                                adjustLeftPages(
+                                    currentLeftPageIndex: currentLeftPageIndex,
+                                    leftAnimationRatio: endedLeftAnimationRatio > 0.5 ? 1 : 0
+                                )
+                            } completion: {
+                                if endedLeftAnimationRatio > 0.5 {
+                                    currentLeftPageIndex -= 2
+                                }
+                                pageSwipeStatus = .notSwipe
+                                adjustBothPages(
+                                    currentLeftPageIndex: currentLeftPageIndex,
+                                    leftAnimationRatio: 0,
+                                    currentRightPageIndex: currentRightPageIndex,
+                                    rightAnimationRatio: 0
+                                )
+                            }
+                        }
+                    }
+            )
+            // Right page
+            .simultaneousGesture(
+                DragGesture()
+                    .onChanged { value in
+                        let dragStartPoint = value.startLocation
+                        if dragStartPoint.x > geometry.size.width / 2 {
+                            self.pageSwipeStatus = .right
+                            let dragXAmount = min(
+                                abs(value.location.x - value.startLocation.x),
+                                geometry.size.width
+                            )
+                            let rightAnimationRatio = min(dragXAmount / geometry.size.width, 1)
+                            adjustRightPages(
+                                currentRightPageIndex: currentRightPageIndex,
+                                rightAnimationRatio: rightAnimationRatio
+                            )
+                        }
+                    }
+                    .onEnded { value in
+                        let dragStartPoint = value.startLocation
+                        if dragStartPoint.x > geometry.size.width / 2 {
+                            let endedRightAnimationRatio =  min(
+                                abs(value.location.x - value.startLocation.x),
+                                geometry.size.width
+                            )
+                            withAnimation {
+                                adjustRightPages(
+                                    currentRightPageIndex: currentRightPageIndex,
+                                    rightAnimationRatio: endedRightAnimationRatio > 0.5 ? 1 : 0
+                                )
+
+                            } completion: {
+                                if endedRightAnimationRatio > 0.5 {
+                                    currentLeftPageIndex += 2
+                                }
+                                pageSwipeStatus = .notSwipe
+                                adjustBothPages(
+                                    currentLeftPageIndex: currentLeftPageIndex,
+                                    leftAnimationRatio: 0,
+                                    currentRightPageIndex: currentRightPageIndex,
+                                    rightAnimationRatio: 0
+                                )
+                            }
                         }
                     }
             )
             .onAppear {
-                leftPageStack = [
-                    .first(pageView:
-                            PageView(
-                                pageType: .left,
-                                front:  { image(fileName: images[0]) },
-                                back: { image(fileName: images[1]) },
-                                pageWidth: geometry.size.width / 2,
-                                animationRatio: $leftAnimationRatio,
-                                dragStartPoint: $dragStartPoint,
-                                dragXAmount: $dragXAmount
-                            )
-                          ),
-                    //                    PageView(
-                    //                        pageType: dragStartPoint.x < geometry.size.width / 2 ? .left : .right,
-                    //                        front:  { image(fileName: images[2], width: geometry.size.width) },
-                    //                        back: { image(fileName: images[3], width: geometry.size.width) },
-                    //                        pageWidth: geometry.size.width / 2,
-                    //                        animationRatio: $animationRatio,
-                    //                        dragStartPoint: $dragStartPoint,
-                    //                        dragXAmount: $dragXAmount
-                    //                    )
-                ]
-                rightPageStack = [
-//                    .first(pageView:
-//                            PageView(
-//                                pageType: .right,
-//                                front:  { image(fileName: images[4]) },
-//                                back: { image(fileName: images[5]) },
-//                                pageWidth: geometry.size.width / 2,
-//                                animationRatio: $rightAnimationRatio,
-//                                dragStartPoint: $dragStartPoint,
-//                                dragXAmount: $dragXAmount
-//                            )
-//                    )
-                ]
+                adjustBothPages(
+                    currentLeftPageIndex: currentLeftPageIndex,
+                    leftAnimationRatio: 0,
+                    currentRightPageIndex: currentRightPageIndex,
+                    rightAnimationRatio: 0
+                )
             }
         }
-        //        .shadow(radius: dragAmount == .zero ? 0 : 10)
+        .padding()
     }
 }
 
-struct PageView: View {
+private extension ContentView {
+    func adjustBothPages(currentLeftPageIndex: Int, leftAnimationRatio: CGFloat, currentRightPageIndex: Int, rightAnimationRatio: CGFloat) {
+        adjustLeftPages(currentLeftPageIndex: currentLeftPageIndex, leftAnimationRatio: leftAnimationRatio)
+        adjustRightPages(currentRightPageIndex: currentRightPageIndex, rightAnimationRatio: rightAnimationRatio)
+
+    }
+    func adjustLeftPages(currentLeftPageIndex: Int, leftAnimationRatio: CGFloat) {
+        leftPageStack = [
+            .second(view: AnyView(image(fileName: images[currentLeftPageIndex - 2])), id: UUID().uuidString),
+            .top(
+                pageView: PageView(
+                    pageType: .left,
+                    animationRatio: leftAnimationRatio,
+                    front: AnyView(image(fileName: images[currentLeftPageIndex])),
+                    back:  AnyView(image(fileName: images[currentLeftPageIndex - 1]))
+                )
+            ),
+        ]
+    }
+
+    func adjustRightPages(currentRightPageIndex: Int, rightAnimationRatio: CGFloat) {
+        rightPageStack = [
+            .second(view: AnyView(image(fileName: images[currentRightPageIndex + 2])), id: UUID().uuidString),
+            .top(
+                pageView: PageView(
+                    pageType: .right,
+                    animationRatio: rightAnimationRatio,
+                    front: AnyView(image(fileName: images[currentRightPageIndex])),
+                    back: AnyView(image(fileName: images[currentRightPageIndex + 1]))
+                )
+            ),
+        ]
+    }
+}
+
+struct PageView: View, Identifiable {
     let pageType: PageType
-    @ViewBuilder let front: () -> AnyView
-    @ViewBuilder let back: () -> AnyView
-    let pageWidth: CGFloat
-    @Binding var animationRatio: CGFloat
-    @Binding var dragStartPoint: CGPoint
-    @Binding var dragXAmount: CGFloat?
+    let animationRatio: CGFloat
+    let front: AnyView
+    let back: AnyView
+
+    var id: String {
+        return pageType.anchor.hashValue.description + animationRatio.description
+    }
 
     var body: some View {
+        let _ = print(animationRatio)
         ZStack(alignment: .center) {
-            if (pageType.isLeft && animationRatio > 0.5) || (!pageType.isLeft && animationRatio < 0.5) {
-                front()
+            if animationRatio < 0.5 {
+                front
             }
             else {
-                back()
+                back
+                    .rotation3DEffect(
+                        Angle(degrees: 180),
+                        axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                        perspective: 0.5
+                    )
             }
         }
-        .onChange(of: animationRatio, { oldValue, newValue in
-        })
         .rotation3DEffect(
-            Angle(degrees: min( animationRatio * pageType.maxAngle, pageType.maxAngle)),
+            Angle(degrees: animationRatio * pageType.maxAngle),
             axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
-            anchor: pageType.anchor
+            anchor: pageType.anchor,
+            perspective: 0.5
         )
-        .animation(.easeInOut, value: animationRatio)
     }
 }
 
