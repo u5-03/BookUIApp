@@ -9,9 +9,9 @@ import SwiftUI
 import Observation
 
 struct BookView: View {
-    let images = Array(0...100).map({ "image\($0.remainderReportingOverflow(dividingBy: 6).partialValue)" })
+    let images = Array(0...10).map({ "image\($0.remainderReportingOverflow(dividingBy: 6).partialValue)" })
 
-    @State private var currentLeftPageIndex = 10
+    @State private var currentLeftPageIndex = 3
     private var currentRightPageIndex: Int {
         currentLeftPageIndex + 1
     }
@@ -217,24 +217,34 @@ private extension BookView {
 //        ]
         leftPage = AnyView(
             ZStack(alignment: .center) {
-                SecondContentView(
-                    id: images[currentLeftPageIndex - 2],
-                    pageIndex: currentLeftPageIndex - 2,
-                    pageType: .left,
-                    animationRatio: leftAnimationRatio) {
-                    image(fileName: images[currentLeftPageIndex - 2])
-                }
-                TopPageView(
-                    pageIndex: currentLeftPageIndex,
-                    pageType: .left,
-                    pageSwipeStatus: pageSwipeStatus,
-                    animationRatio: leftAnimationRatio,
-                    front: {
-                    image(fileName: images[currentLeftPageIndex])
-                    }, back: {
-                        image(fileName: images[currentLeftPageIndex - 1])
+                if images.indices.contains(currentLeftPageIndex - 2) {
+                    SecondContentView(
+                        id: images[currentLeftPageIndex - 2],
+                        pageIndex: currentLeftPageIndex - 2,
+                        pageType: .left,
+                        animationRatio: leftAnimationRatio) {
+                        image(fileName: images[currentLeftPageIndex - 2])
                     }
-                )
+                } else {
+                    EmptyView()
+                }
+                if images.indices.contains(currentLeftPageIndex - 1) {
+                    TopPageView(
+                        pageIndex: currentLeftPageIndex,
+                        pageType: .left,
+                        pageSwipeStatus: pageSwipeStatus,
+                        animationRatio: leftAnimationRatio,
+                        isFrontPageExist: images.indices.contains(currentLeftPageIndex),
+                        isBackPageExist: images.indices.contains(currentLeftPageIndex - 1),
+                        front: {
+                        image(fileName: images[currentLeftPageIndex])
+                        }, back: {
+                            image(fileName: images[currentLeftPageIndex - 1])
+                        }
+                    )
+                } else {
+                    EmptyView()
+                }
             }
             .frame(width: pageSize.width / 2, height: pageSize.height)
             .scaledToFill()
@@ -258,24 +268,34 @@ private extension BookView {
 //        ]
         rightPage = AnyView(
             ZStack(alignment: .center) {
-                SecondContentView(
-                    id: images[currentRightPageIndex + 2],
-                    pageIndex: currentRightPageIndex + 2,
-                    pageType: .right,
-                    animationRatio: rightAnimationRatio) {
-                    image(fileName: images[currentRightPageIndex + 2])
-                }
-                TopPageView(
-                    pageIndex: currentRightPageIndex,
-                    pageType: .right,
-                    pageSwipeStatus: pageSwipeStatus,
-                    animationRatio: rightAnimationRatio,
-                    front: {
-                    image(fileName: images[currentRightPageIndex])
-                    }, back: {
-                        image(fileName: images[currentRightPageIndex + 1])
+                if images.indices.contains(currentRightPageIndex + 2) {
+                    SecondContentView(
+                        id: images[currentRightPageIndex + 2],
+                        pageIndex: currentRightPageIndex + 2,
+                        pageType: .right,
+                        animationRatio: rightAnimationRatio) {
+                        image(fileName: images[currentRightPageIndex + 2])
                     }
-                )
+                } else {
+                    EmptyView()
+                }
+                if images.indices.contains(currentRightPageIndex) {
+                    TopPageView(
+                        pageIndex: currentRightPageIndex,
+                        pageType: .right,
+                        pageSwipeStatus: pageSwipeStatus,
+                        animationRatio: rightAnimationRatio,
+                        isFrontPageExist: images.indices.contains(currentRightPageIndex),
+                        isBackPageExist: images.indices.contains(currentRightPageIndex + 1),
+                        front: {
+                        image(fileName: images[currentRightPageIndex])
+                        }, back: {
+                            image(fileName: images[currentRightPageIndex + 1])
+                        }
+                    )
+                } else {
+                    EmptyView()
+                }
             }
             .frame(width: pageSize.width / 2, height: pageSize.height)
             .scaledToFill()
