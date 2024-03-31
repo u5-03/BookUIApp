@@ -15,6 +15,7 @@
 		C36F05292BB80BE5002494E2 /* PageDirectionType.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36F05282BB80BE5002494E2 /* PageDirectionType.swift */; };
 		C36F052B2BB80C21002494E2 /* PageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36F052A2BB80C21002494E2 /* PageView.swift */; };
 		C36F052E2BB80C63002494E2 /* PageSwipeStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36F052D2BB80C63002494E2 /* PageSwipeStatus.swift */; };
+		C36F054E2BB8FB45002494E2 /* StrokeBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36F054D2BB8FB45002494E2 /* StrokeBackground.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		C36F05282BB80BE5002494E2 /* PageDirectionType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageDirectionType.swift; sourceTree = "<group>"; };
 		C36F052A2BB80C21002494E2 /* PageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageView.swift; sourceTree = "<group>"; };
 		C36F052D2BB80C63002494E2 /* PageSwipeStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageSwipeStatus.swift; sourceTree = "<group>"; };
+		C36F054D2BB8FB45002494E2 /* StrokeBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeBackground.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +61,7 @@
 		C30D8ADA2BB58F5D00886AA1 /* BookUIApp */ = {
 			isa = PBXGroup;
 			children = (
+				C36F054C2BB8FB35002494E2 /* Extensions */,
 				C36F054B2BB8DA06002494E2 /* Components */,
 				C36F052C2BB80C52002494E2 /* Enum */,
 				C30D8ADB2BB58F5D00886AA1 /* BookUIApp.swift */,
@@ -93,6 +96,14 @@
 				C36F052A2BB80C21002494E2 /* PageView.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		C36F054C2BB8FB35002494E2 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				C36F054D2BB8FB45002494E2 /* StrokeBackground.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -165,6 +176,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C36F054E2BB8FB45002494E2 /* StrokeBackground.swift in Sources */,
 				C36F052B2BB80C21002494E2 /* PageView.swift in Sources */,
 				C36F052E2BB80C63002494E2 /* PageSwipeStatus.swift in Sources */,
 				C30D8ADE2BB58F5D00886AA1 /* BookView.swift in Sources */,

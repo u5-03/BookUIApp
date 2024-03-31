@@ -20,6 +20,7 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
         + animationRatio.description
     }
 
+    let pageIndex: Int
     let pageLayerType: PageLayerType = .top
     let pageType: PageDirectionType
     let pageSwipeStatus: PageSwipeStatus
@@ -56,18 +57,38 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
         }
     }
 
+    private var backPageIndex: Int {
+        switch pageType {
+        case .left:
+            return pageIndex - 1
+        case .right:
+            return pageIndex + 1
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .center) {
             if !isPageTurning || animationRatio < 0.5 {
-                front()
+                ZStack(alignment: pageType == .left ? .bottomLeading : .bottomTrailing) {
+                    front()
+                    PageTextView(pageIndex: pageIndex)
+                }
             }
             else {
-                back()
-                    .rotation3DEffect(
-                        Angle(degrees: 180),
-                        axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
-                        perspective: 0.5
-                    )
+                ZStack(alignment: pageType == .left ? .bottomLeading : .bottomTrailing) {
+                    back()
+                        .rotation3DEffect(
+                            Angle(degrees: 180),
+                            axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                            perspective: 0.5
+                        )
+                    PageTextView(pageIndex: backPageIndex)
+                       .rotation3DEffect(
+                           Angle(degrees: 180),
+                           axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                           perspective: 0.5
+                       )
+                }
             }
         }
         .overlay(.black.opacity(opacity))
@@ -83,12 +104,16 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
 struct SecondContentView<Content: View>: View, BookPageViewProtocol {
     let pageLayerType: PageLayerType = .second
     let id: String
+    let pageIndex: Int
     let pageType: PageDirectionType
     let animationRatio: CGFloat
     let content: () -> Content
 
     var body: some View {
-        content()
+        ZStack(alignment: pageType == .left ? .bottomLeading : .bottomTrailing) {
+            content()
+            PageTextView(pageIndex: pageIndex)
+        }
             .overlay(.black.opacity((1 - animationRatio) * 0.5))
             .rotation3DEffect(
                 Angle(degrees: pageType.defaultAngle * animationRatio),
@@ -96,5 +121,17 @@ struct SecondContentView<Content: View>: View, BookPageViewProtocol {
                 anchor: pageType.anchor,
                 perspective: 0.3
             )
+    }
+}
+
+private struct PageTextView: View {
+    let pageIndex: Int
+
+    var body: some View {
+        Text(pageIndex.description)
+           .font(.system(size: 12, weight: .bold))
+           .foregroundStyle(.white)
+           .stroke(color: .black, width: 1)
+           .padding()
     }
 }

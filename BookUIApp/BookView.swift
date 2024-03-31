@@ -219,11 +219,13 @@ private extension BookView {
             ZStack(alignment: .center) {
                 SecondContentView(
                     id: images[currentLeftPageIndex - 2],
+                    pageIndex: currentLeftPageIndex - 2,
                     pageType: .left,
                     animationRatio: leftAnimationRatio) {
                     image(fileName: images[currentLeftPageIndex - 2])
                 }
                 TopPageView(
+                    pageIndex: currentLeftPageIndex,
                     pageType: .left,
                     pageSwipeStatus: pageSwipeStatus,
                     animationRatio: leftAnimationRatio,
@@ -258,11 +260,13 @@ private extension BookView {
             ZStack(alignment: .center) {
                 SecondContentView(
                     id: images[currentRightPageIndex + 2],
+                    pageIndex: currentRightPageIndex + 2,
                     pageType: .right,
                     animationRatio: rightAnimationRatio) {
                     image(fileName: images[currentRightPageIndex + 2])
                 }
                 TopPageView(
+                    pageIndex: currentRightPageIndex,
                     pageType: .right,
                     pageSwipeStatus: pageSwipeStatus,
                     animationRatio: rightAnimationRatio,
