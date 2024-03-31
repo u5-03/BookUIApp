@@ -22,10 +22,10 @@ struct BookView: View {
     @State private var pageSwipeStatus: PageSwipeStatus = .notSwipe
     @State private var pageSize: CGSize = .zero
     private var leftPageIndex: Double {
-        return pageSwipeStatus == .left ? 1 : 0
+        return pageSwipeStatus == .right ? 1 : 0
     }
     private var rightPageIndex: Double {
-        return pageSwipeStatus == .right ? 1 : 0
+        return pageSwipeStatus == .left ? 1 : 0
     }
 
     func image(fileName: String) -> some View {
@@ -69,16 +69,20 @@ struct BookView: View {
                         let dragStartPoint = value.startLocation
                         let isLeftPageSwipe = dragStartPoint.x < geometry.size.width / 2
                         if isLeftPageSwipe {
-                            self.pageSwipeStatus = .left
+                            self.pageSwipeStatus = .right
                             let dragXAmount = min(
                                 max(value.location.x - value.startLocation.x, 0),
                                 geometry.size.width
                             )
                             let leftAnimationRatio = min(dragXAmount / geometry.size.width, 1)
-                            adjustLeftPages(
+                            adjustBothPages(
                                 currentLeftPageIndex: currentLeftPageIndex,
-                                leftAnimationRatio: leftAnimationRatio
+                                leftAnimationRatio: leftAnimationRatio,
+                                currentRightPageIndex: currentRightPageIndex,
+                                rightAnimationRatio: leftAnimationRatio
                             )
+                        } else {
+                            self.pageSwipeStatus = .left
                         }
                     }
                     .onEnded { value in
@@ -113,16 +117,20 @@ struct BookView: View {
                         let dragStartPoint = value.startLocation
                         let isRightPageSwipe = dragStartPoint.x > geometry.size.width / 2
                         if isRightPageSwipe {
-                            self.pageSwipeStatus = .right
+                            self.pageSwipeStatus = .left
                             let dragXAmount = min(
                                 max(value.startLocation.x - value.location.x, 0),
                                 geometry.size.width
                             )
                             let rightAnimationRatio = min(dragXAmount / geometry.size.width, 1)
-                            adjustRightPages(
+                            adjustBothPages(
+                                currentLeftPageIndex: currentLeftPageIndex,
+                                leftAnimationRatio: rightAnimationRatio,
                                 currentRightPageIndex: currentRightPageIndex,
                                 rightAnimationRatio: rightAnimationRatio
                             )
+                        } else {
+                            self.pageSwipeStatus = .right
                         }
                     }
                     .onEnded { value in
@@ -215,11 +223,16 @@ private extension BookView {
                     animationRatio: leftAnimationRatio) {
                     image(fileName: images[currentLeftPageIndex - 2])
                 }
-                TopPageView(pageType: .left, animationRatio: leftAnimationRatio, front: {
+                TopPageView(
+                    pageType: .left,
+                    pageSwipeStatus: pageSwipeStatus,
+                    animationRatio: leftAnimationRatio,
+                    front: {
                     image(fileName: images[currentLeftPageIndex])
-                }, back: {
-                    image(fileName: images[currentLeftPageIndex - 1])
-                })
+                    }, back: {
+                        image(fileName: images[currentLeftPageIndex - 1])
+                    }
+                )
             }
             .frame(width: pageSize.width / 2, height: pageSize.height)
             .scaledToFill()
@@ -249,11 +262,16 @@ private extension BookView {
                     animationRatio: rightAnimationRatio) {
                     image(fileName: images[currentRightPageIndex + 2])
                 }
-                TopPageView(pageType: .right, animationRatio: rightAnimationRatio, front: {
+                TopPageView(
+                    pageType: .right,
+                    pageSwipeStatus: pageSwipeStatus,
+                    animationRatio: rightAnimationRatio,
+                    front: {
                     image(fileName: images[currentRightPageIndex])
-                }, back: {
-                    image(fileName: images[currentRightPageIndex + 1])
-                })
+                    }, back: {
+                        image(fileName: images[currentRightPageIndex + 1])
+                    }
+                )
             }
             .frame(width: pageSize.width / 2, height: pageSize.height)
             .scaledToFill()
