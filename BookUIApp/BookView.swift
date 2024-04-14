@@ -15,10 +15,17 @@ struct BookView: View {
     private var currentRightPageIndex: Int {
         currentLeftPageIndex + 1
     }
-//    @State private var leftPageStack: [any BookPageViewProtocol] = []
-//    @State private var rightPageStack: [any BookPageViewProtocol] = []
+    //    @State private var leftPageStack: [any BookPageViewProtocol] = []
+    //    @State private var rightPageStack: [any BookPageViewProtocol] = []
     @State private var leftPage: AnyView = AnyView(EmptyView())
     @State private var rightPage: AnyView = AnyView(EmptyView())
+
+    @State private var leftPageKindStack: [LeftBookPageKind] = []
+    @State private var rightPageKindStack: [RightBookPageKind] = []
+
+    @State private var leftAnimationRatio: CGFloat = 0
+    @State private var rightAnimationRatio: CGFloat = 0
+
     @State private var pageSwipeStatus: PageSwipeStatus = .notSwipe
     @State private var pageSize: CGSize = .zero
     private var leftPageIndex: Double {
@@ -32,27 +39,41 @@ struct BookView: View {
         return Image(fileName)
             .resizable()
             .clipped()
-
     }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 HStack(spacing: 0) {
-//                    pageStackView(
-//                        pageStack: leftPageStack,
-//                        pageZIndex: leftPageIndex,
-//                        pageType: .left,
-//                        pageSize: .init(width: geometry.size.width / 2, height: geometry.size.height)
-//                    )
-//                    pageStackView(
-//                        pageStack: rightPageStack,
-//                        pageZIndex: rightPageIndex,
-//                        pageType: .right,
-//                        pageSize: .init(width: geometry.size.width / 2, height: geometry.size.height)
-//                    )
-                    leftPage
-                    rightPage
+                    //                    pageStackView(
+                    //                        pageStack: leftPageStack,
+                    //                        pageZIndex: leftPageIndex,
+                    //                        pageType: .left,
+                    //                        pageSize: .init(width: geometry.size.width / 2, height: geometry.size.height)
+                    //                    )
+                    //                    pageStackView(
+                    //                        pageStack: rightPageStack,
+                    //                        pageZIndex: rightPageIndex,
+                    //                        pageType: .right,
+                    //                        pageSize: .init(width: geometry.size.width / 2, height: geometry.size.height)
+                    //                    )
+
+                    //                    leftPage
+                    //                    rightPage
+                    leftPageStackView(
+                        pageKindStack: leftPageKindStack,
+                        pageZIndex: leftPageIndex,
+                        pageType: .left,
+                        animationRatio: leftAnimationRatio,
+                        pageSize: pageSize
+                    )
+                    rightPageStackView(
+                        pageKindStack: rightPageKindStack,
+                        pageZIndex: rightPageIndex,
+                        pageType: .right,
+                        animationRatio: rightAnimationRatio,
+                        pageSize: pageSize
+                    )
                 }
             }
             .ignoresSafeArea()
@@ -75,6 +96,7 @@ struct BookView: View {
                                 geometry.size.width
                             )
                             let leftAnimationRatio = min(dragXAmount / geometry.size.width, 1)
+                            self.leftAnimationRatio = leftAnimationRatio
                             adjustBothPages(
                                 currentLeftPageIndex: currentLeftPageIndex,
                                 leftAnimationRatio: leftAnimationRatio,
@@ -95,6 +117,7 @@ struct BookView: View {
                                     currentLeftPageIndex: currentLeftPageIndex,
                                     leftAnimationRatio: isInLeftPage ? 0 : 1
                                 )
+                                self.leftAnimationRatio = isInLeftPage ? 0 : 1
                             } completion: {
                                 if !isInLeftPage {
                                     currentLeftPageIndex -= 2
@@ -106,6 +129,7 @@ struct BookView: View {
                                     currentRightPageIndex: currentRightPageIndex,
                                     rightAnimationRatio: 0
                                 )
+                                self.leftAnimationRatio = 0
                             }
                         }
                     }
@@ -123,6 +147,7 @@ struct BookView: View {
                                 geometry.size.width
                             )
                             let rightAnimationRatio = min(dragXAmount / geometry.size.width, 1)
+                            self.rightAnimationRatio = rightAnimationRatio
                             adjustBothPages(
                                 currentLeftPageIndex: currentLeftPageIndex,
                                 leftAnimationRatio: rightAnimationRatio,
@@ -143,6 +168,7 @@ struct BookView: View {
                                     currentRightPageIndex: currentRightPageIndex,
                                     rightAnimationRatio: isInRightPage ? 0 : 1
                                 )
+                                self.rightAnimationRatio = isInRightPage ? 0 : 1
 
                             } completion: {
                                 if !isInRightPage {
@@ -155,6 +181,8 @@ struct BookView: View {
                                     currentRightPageIndex: currentRightPageIndex,
                                     rightAnimationRatio: 0
                                 )
+                                self.rightAnimationRatio = 0
+
                             }
                         }
                     }
@@ -175,6 +203,101 @@ struct BookView: View {
 }
 
 private extension BookView {
+    @ViewBuilder
+    func leftPageStackView(
+        pageKindStack: [LeftBookPageKind],
+        pageZIndex: Double,
+        pageType: PageDirectionType,
+        animationRatio: CGFloat,
+        pageSize: CGSize
+    ) -> some View {
+        ZStack(alignment: .center) {
+            ForEach(pageKindStack, id: \.id) { kind in
+                switch kind {
+                case .leftTopPage(let backFileName, let frontFileName, let frontPageIndex):
+                    TopPageView(
+                        pageIndex: currentLeftPageIndex,
+                        pageType: .left,
+                        pageSwipeStatus: pageSwipeStatus,
+                        animationRatio: animationRatio,
+                        isFrontPageExist: images.indices.contains(frontPageIndex),
+                        isBackPageExist: images.indices.contains(frontPageIndex - 1),
+                        pageSize: pageSize,
+                        front: {
+                            if let frontFileName = frontFileName {
+                                image(fileName: frontFileName)
+                            } else {
+                                EmptyView()
+                            }
+                        }, back: {
+                            image(fileName: backFileName)
+                        }
+                    )
+                case .leftSecondPage(let fileName, let pageIndex):
+                    SecondContentView(
+                        id: images[currentLeftPageIndex - 2],
+                        pageIndex: pageIndex,
+                        pageType: .left,
+                        animationRatio: animationRatio) {
+                            image(fileName: fileName)
+                        }
+                        .frame(width: pageSize.width / 2, height: pageSize.height)
+                }
+            }
+        }
+        .scaledToFill()
+        .zIndex(pageZIndex)
+    }
+
+    @ViewBuilder
+    func rightPageStackView(
+        pageKindStack: [RightBookPageKind],
+        pageZIndex: Double,
+        pageType: PageDirectionType,
+        animationRatio: CGFloat,
+        pageSize: CGSize
+    ) -> some View {
+        ZStack(alignment: .center) {
+            ForEach(pageKindStack, id: \.id) { kind in
+                switch kind {
+                case .rightTopPage(let frontFileName, let backFileName, let frontPageIndex):
+                    TopPageView(
+                        pageIndex: currentRightPageIndex,
+                        pageType: .right,
+                        pageSwipeStatus: pageSwipeStatus,
+                        animationRatio: animationRatio,
+                        isFrontPageExist: images.indices.contains(frontPageIndex),
+                        isBackPageExist: images.indices.contains(frontPageIndex + 1),
+                        pageSize: pageSize,
+                        front: {
+                            image(fileName: frontFileName)
+                        }, back: {
+                            if let backFileName = backFileName {
+                                image(fileName: backFileName)
+                            } else  {
+                                EmptyView()
+                            }
+                        }
+                    )
+                case .rightSecondPage(let fileName, let pageIndex):
+                    if let fileName = fileName {
+                        SecondContentView(
+                            id: images[pageIndex],
+                            pageIndex: pageIndex,
+                            pageType: .right,
+                            animationRatio: animationRatio) {
+                                image(fileName: fileName)
+                            }
+                            .frame(width: pageSize.width / 2, height: pageSize.height)
+                    } else {
+                        EmptyView()
+                    }
+                }
+            }
+        }
+        .scaledToFill()
+        .zIndex(pageZIndex)
+    }
 
     @ViewBuilder
     func pageStackView(
@@ -185,7 +308,7 @@ private extension BookView {
     ) -> some View {
         ZStack(alignment: .center) {
             ForEach(0..<pageStack.count) { index in
-//                AnyView(pageStack[index])
+                //                AnyView(pageStack[index])
             }
         }
         .frame(width: pageSize.width, height: pageSize.height)
@@ -202,19 +325,41 @@ private extension BookView {
     }
 
     func adjustLeftPages(currentLeftPageIndex: Int, leftAnimationRatio: CGFloat) {
-//        leftPageStack = [
-//            SecondContentView(
-//                id: images[currentLeftPageIndex - 2],
-//                pageType: .left,
-//                animationRatio: leftAnimationRatio) {
-//                image(fileName: images[currentLeftPageIndex - 2])
-//            },
-//            TopPageView(pageType: .left, animationRatio: leftAnimationRatio, front: {
-//                image(fileName: images[currentLeftPageIndex])
-//            }, back: {
-//                image(fileName: images[currentLeftPageIndex - 1])
-//            })
-//        ]
+        //        leftPageStack = [
+        //            SecondContentView(
+        //                id: images[currentLeftPageIndex - 2],
+        //                pageType: .left,
+        //                animationRatio: leftAnimationRatio) {
+        //                image(fileName: images[currentLeftPageIndex - 2])
+        //            },
+        //            TopPageView(pageType: .left, animationRatio: leftAnimationRatio, front: {
+        //                image(fileName: images[currentLeftPageIndex])
+        //            }, back: {
+        //                image(fileName: images[currentLeftPageIndex - 1])
+        //            })
+        //        ]
+        var leftPageKindStack: [LeftBookPageKind] = []
+        let secondPageIndex = currentLeftPageIndex - 2
+        if images.indices.contains(secondPageIndex) {
+            leftPageKindStack.append(
+                .leftSecondPage(
+                    fileName: images[secondPageIndex],
+                    pageIndex: secondPageIndex
+                )
+            )
+        }
+        let topBackPageIndex = currentLeftPageIndex - 1
+        if images.indices.contains(topBackPageIndex) {
+            leftPageKindStack.append(
+                .leftTopPage(
+                    backFileName: images[topBackPageIndex],
+                    frontFileName: images.indices.contains(currentLeftPageIndex) ? images[currentLeftPageIndex] : nil,
+                    frontPageIndex: currentLeftPageIndex
+                )
+            )
+        }
+        self.leftPageKindStack = leftPageKindStack
+        return
         leftPage = AnyView(
             ZStack(alignment: .center) {
                 if images.indices.contains(currentLeftPageIndex - 2) {
@@ -223,8 +368,8 @@ private extension BookView {
                         pageIndex: currentLeftPageIndex - 2,
                         pageType: .left,
                         animationRatio: leftAnimationRatio) {
-                        image(fileName: images[currentLeftPageIndex - 2])
-                    }
+                            image(fileName: images[currentLeftPageIndex - 2])
+                        }
                 } else {
                     EmptyView()
                 }
@@ -236,8 +381,9 @@ private extension BookView {
                         animationRatio: leftAnimationRatio,
                         isFrontPageExist: images.indices.contains(currentLeftPageIndex),
                         isBackPageExist: images.indices.contains(currentLeftPageIndex - 1),
+                        pageSize: pageSize,
                         front: {
-                        image(fileName: images[currentLeftPageIndex])
+                            image(fileName: images[currentLeftPageIndex])
                         }, back: {
                             image(fileName: images[currentLeftPageIndex - 1])
                         }
@@ -246,26 +392,49 @@ private extension BookView {
                     EmptyView()
                 }
             }
-            .frame(width: pageSize.width / 2, height: pageSize.height)
-            .scaledToFill()
-            .zIndex(leftPageIndex)
+                .frame(width: pageSize.width / 2, height: pageSize.height)
+                .scaledToFill()
+                .zIndex(leftPageIndex)
         )
     }
 
     func adjustRightPages(currentRightPageIndex: Int, rightAnimationRatio: CGFloat) {
-//        rightPageStack = [
-//            SecondContentView(
-//                id: images[currentRightPageIndex + 2],
-//                pageType: .right,
-//                animationRatio: rightAnimationRatio) {
-//                image(fileName: images[currentRightPageIndex + 2])
-//            },
-//            TopPageView(pageType: .right, animationRatio: rightAnimationRatio, front: {
-//                image(fileName: images[currentRightPageIndex])
-//            }, back: {
-//                image(fileName: images[currentRightPageIndex + 1])
-//            })
-//        ]
+        //        rightPageStack = [
+        //            SecondContentView(
+        //                id: images[currentRightPageIndex + 2],
+        //                pageType: .right,
+        //                animationRatio: rightAnimationRatio) {
+        //                image(fileName: images[currentRightPageIndex + 2])
+        //            },
+        //            TopPageView(pageType: .right, animationRatio: rightAnimationRatio, front: {
+        //                image(fileName: images[currentRightPageIndex])
+        //            }, back: {
+        //                image(fileName: images[currentRightPageIndex + 1])
+        //            })
+        //        ]
+        var rightPageKindStack: [RightBookPageKind] = []
+        let secondPageIndex = currentRightPageIndex + 2
+        if images.indices.contains(secondPageIndex) {
+            rightPageKindStack.append(
+                .rightSecondPage(
+                    fileName: images[secondPageIndex],
+                    pageIndex: secondPageIndex
+                )
+            )
+        }
+        let topBackPageIndex = currentRightPageIndex + 1
+        if images.indices.contains(currentRightPageIndex) {
+            rightPageKindStack.append(
+                .rightTopPage(
+                    frontFileName: images[currentRightPageIndex],
+                    backFileName: images.indices.contains(topBackPageIndex) ? images[topBackPageIndex] : nil,
+                    frontPageIndex: currentRightPageIndex
+                )
+            )
+        }
+        self.rightPageKindStack = rightPageKindStack
+        return
+
         rightPage = AnyView(
             ZStack(alignment: .center) {
                 if images.indices.contains(currentRightPageIndex + 2) {
@@ -274,8 +443,8 @@ private extension BookView {
                         pageIndex: currentRightPageIndex + 2,
                         pageType: .right,
                         animationRatio: rightAnimationRatio) {
-                        image(fileName: images[currentRightPageIndex + 2])
-                    }
+                            image(fileName: images[currentRightPageIndex + 2])
+                        }
                 } else {
                     EmptyView()
                 }
@@ -287,8 +456,9 @@ private extension BookView {
                         animationRatio: rightAnimationRatio,
                         isFrontPageExist: images.indices.contains(currentRightPageIndex),
                         isBackPageExist: images.indices.contains(currentRightPageIndex + 1),
+                        pageSize: pageSize,
                         front: {
-                        image(fileName: images[currentRightPageIndex])
+                            image(fileName: images[currentRightPageIndex])
                         }, back: {
                             image(fileName: images[currentRightPageIndex + 1])
                         }
@@ -297,12 +467,244 @@ private extension BookView {
                     EmptyView()
                 }
             }
-            .frame(width: pageSize.width / 2, height: pageSize.height)
-            .scaledToFill()
-            .zIndex(rightPageIndex)
+                .frame(width: pageSize.width / 2, height: pageSize.height)
+                .scaledToFill()
+                .zIndex(rightPageIndex)
         )
     }
 }
+
+// PageView
+enum LeftBookPageKind: Identifiable {
+    case leftTopPage(backFileName: String, frontFileName: String?, frontPageIndex: Int)
+    case leftSecondPage(fileName: String, pageIndex: Int)
+
+    var id: String {
+        return pageIndex.description
+    }
+
+    var pageIndex: Int {
+        switch self {
+        case .leftTopPage(_, _, let pageIndex):
+            return pageIndex
+        case .leftSecondPage(_, let pageIndex):
+            return pageIndex
+        }
+    }
+}
+
+enum RightBookPageKind: Identifiable {
+
+    case rightTopPage(frontFileName: String, backFileName: String?, frontPageIndex: Int)
+    case rightSecondPage(fileName: String?, pageIndex: Int)
+
+    var id: String {
+        return pageIndex.description
+    }
+
+    var pageIndex: Int {
+        switch self {
+        case .rightTopPage(_, _, let pageIndex):
+            return pageIndex
+        case .rightSecondPage(_, let pageIndex):
+            return pageIndex
+        }
+    }
+}
+
+protocol BookPageViewProtocol: View, Identifiable where Body: View, Body: View {
+    var animationRatio: CGFloat { get }
+    var pageLayerType: PageLayerType { get }
+    @ViewBuilder var body: Self.Body { get }
+}
+
+struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProtocol {
+    var id: String {
+        return pageLayerType.hashValue.description
+        + pageType.isLeft.description
+        + animationRatio.description
+    }
+
+    let pageIndex: Int
+    let pageLayerType: PageLayerType = .top
+    let pageType: PageDirectionType
+    let pageSwipeStatus: PageSwipeStatus
+    let animationRatio: CGFloat
+    let isFrontPageExist: Bool
+    let isBackPageExist: Bool
+    let pageSize: CGSize
+    @ViewBuilder let front: () -> FrontContent
+    @ViewBuilder let back: () -> BackContent
+
+    private var isPageTurning: Bool {
+        switch pageSwipeStatus {
+        case .left:
+            return pageType == .right
+        case .right:
+            return pageType == .left
+        case .notSwipe:
+            return false
+        }
+    }
+
+    private var opacity: CGFloat {
+        if isPageTurning {
+            return 0
+        } else if animationRatio < 0.5 {
+            return 0
+        } else {
+            return (animationRatio - 0.5) * 2 * 0.5
+        }
+    }
+
+    private var angleDegrees: CGFloat {
+        if isPageTurning {
+            return pageType.defaultAngle + animationRatio * pageType.moveMaxAngle
+        } else {
+            return pageType.defaultAngle
+            switch pageType {
+            case .left:
+                return pageType.defaultAngle + 10
+            case .right:
+                return pageType.defaultAngle - 10
+            }
+        }
+    }
+
+    private var backPageIndex: Int {
+        switch pageType {
+        case .left:
+            return pageIndex - 1
+        case .right:
+            return pageIndex + 1
+        }
+    }
+
+    private var viewWidth: CGFloat {
+        let pagingRatioToHalfRatio = abs(angleDegrees - 90) / 90
+        return pageSize.width / 2 * (pagingRatioToHalfRatio * 0.9)
+    }
+
+    private var leftTopPageLeftMargin: CGFloat {
+        if pageType == .left {
+            if angleDegrees > 90 {
+                return 0
+            } else {
+                return pageSize.width / 2 - viewWidth
+            }
+        } else {
+            if angleDegrees < 90 {
+                return 0
+            } else {
+                return pageSize.width / 2 - viewWidth
+            }
+        }
+    }
+
+    private var rightTopPageRightMargin: CGFloat {
+        if pageType == .left {
+            if angleDegrees < 90 {
+                return 0
+            } else {
+                return pageSize.width / 2 - viewWidth
+            }
+        } else {
+            if angleDegrees > 90 {
+                return 0
+            } else {
+                return pageSize.width / 2 - viewWidth
+            }
+        }
+    }
+
+    var body: some View {
+        HStack {
+//            Spacer()
+//                .frame(width: leftTopPageLeftMargin)
+            ZStack(alignment: .center) {
+                if !isPageTurning || animationRatio < 0.5 {
+                    ZStack(alignment: pageType == .left ? .bottomLeading : .bottomTrailing) {
+                        if isFrontPageExist {
+                            front()
+                        } else {
+                            Color.white
+                                .stroke(color: Color.black, width: 1)
+                        }
+                        PageTextView(pageIndex: pageIndex)
+                    }
+                }
+                else {
+                    ZStack(alignment: pageType == .left ? .bottomLeading : .bottomTrailing) {
+                        if isBackPageExist {
+                            back()
+                                .rotation3DEffect(
+                                    Angle(degrees: 180),
+                                    axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                                    perspective: 0.5
+                                )
+                        } else {
+                            Color.white
+                                .stroke(color: Color.black, width: 1)
+                        }
+                        PageTextView(pageIndex: backPageIndex)
+                            .rotation3DEffect(
+                                Angle(degrees: 180),
+                                axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                                perspective: 0.5
+                            )
+                    }
+                }
+            }
+            .overlay(.black.opacity(opacity))
+            .rotation3DEffect(
+                Angle(degrees: angleDegrees),
+                axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                anchor: pageType.anchor,
+                perspective: 0.3
+            )
+            .frame(width: pageSize.width / 2, height: pageSize.height)
+//            .frame(width: viewWidth, height: pageSize.height)
+//            Spacer()
+//                .frame(width: rightTopPageRightMargin)
+        }
+    }
+}
+
+struct SecondContentView<Content: View>: View, BookPageViewProtocol {
+    let pageLayerType: PageLayerType = .second
+    let id: String
+    let pageIndex: Int
+    let pageType: PageDirectionType
+    let animationRatio: CGFloat
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack(alignment: pageType == .left ? .bottomLeading : .bottomTrailing) {
+            content()
+            PageTextView(pageIndex: pageIndex)
+        }
+        .overlay(.black.opacity((1 - animationRatio) * 0.5))
+        .rotation3DEffect(
+            Angle(degrees: pageType.defaultAngle * animationRatio),
+            axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+            anchor: pageType.anchor,
+            perspective: 0.3
+        )
+    }
+}
+
+private struct PageTextView: View {
+    let pageIndex: Int
+
+    var body: some View {
+        Text((pageIndex + 1).description)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.white)
+            .stroke(color: .black, width: 1)
+            .padding()
+    }
+}
+
 
 #Preview {
     BookView()
