@@ -58,12 +58,6 @@ struct BookView: View {
                 }
             }
             .ignoresSafeArea()
-            //            .rotation3DEffect(
-            //                Angle(degrees: 20),
-            //                axis: (x: CGFloat(6), y: 0, z: CGFloat(0)),
-            //                anchor: .center,
-            //                perspective: 1
-            //            )
             // Left page
             .gesture(
                 DragGesture()
@@ -352,12 +346,6 @@ private extension BookView {
                 )
             )
         }
-        //        if leftPageKindStack.count < PageLayerType.allCases.count {
-        //            leftPageKindStack.insert(.leftFrontPage(pageIndex: 0), at: 0)
-        //        }
-        //        if currentLeftPageIndex == images.count - 1 {
-        //            leftPageKindStack.append(.leftBackPage(pageIndex: images.count))
-        //        }
         self.leftPageKindStack = leftPageKindStack
     }
 
