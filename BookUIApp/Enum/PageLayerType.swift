@@ -10,5 +10,6 @@ import Foundation
 enum PageLayerType {
     case top
     case second
+    case third
     case empty
 }

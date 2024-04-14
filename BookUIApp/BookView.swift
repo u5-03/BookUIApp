@@ -34,6 +34,8 @@ struct BookView: View {
     private var rightPageIndex: Double {
         return pageSwipeStatus == .left ? 1 : 0
     }
+    private let animationDuration: CGFloat = 0.5
+    private let animationBounce: CGFloat = 0.5
 
     func image(fileName: String) -> some View {
         return Image(fileName)
@@ -112,7 +114,7 @@ struct BookView: View {
                         let isLeftPageSwipe = dragStartPoint.x < geometry.size.width / 2
                         if isLeftPageSwipe {
                             let isInLeftPage = value.location.x < geometry.size.width / 2
-                            withAnimation {
+                            withAnimation(.spring(duration: animationDuration, bounce: animationBounce)) {
                                 adjustLeftPages(
                                     currentLeftPageIndex: currentLeftPageIndex,
                                     leftAnimationRatio: isInLeftPage ? 0 : 1
@@ -163,7 +165,7 @@ struct BookView: View {
                         let isRightPageSwipe = dragStartPoint.x > geometry.size.width / 2
                         if isRightPageSwipe {
                             let isInRightPage = value.location.x > geometry.size.width / 2
-                            withAnimation {
+                            withAnimation(.spring(duration: animationDuration, bounce: animationBounce)) {
                                 adjustRightPages(
                                     currentRightPageIndex: currentRightPageIndex,
                                     rightAnimationRatio: isInRightPage ? 0 : 1
@@ -238,7 +240,17 @@ private extension BookView {
                         id: images[currentLeftPageIndex - 2],
                         pageIndex: pageIndex,
                         pageType: .left,
-                        animationRatio: animationRatio) {
+                        animationRatio: animationRatio,
+                        pageSize: pageSize) {
+                            image(fileName: fileName)
+                        }
+                        .frame(width: pageSize.width / 2, height: pageSize.height)
+                case .leftThirdPage(let fileName, let pageIndex):
+                    ThirdContentView(
+                        id: images[currentLeftPageIndex - 2],
+                        pageIndex: pageIndex,
+                        pageType: .left,
+                        pageSize: pageSize) {
                             image(fileName: fileName)
                         }
                         .frame(width: pageSize.width / 2, height: pageSize.height)
@@ -285,7 +297,21 @@ private extension BookView {
                             id: images[pageIndex],
                             pageIndex: pageIndex,
                             pageType: .right,
-                            animationRatio: animationRatio) {
+                            animationRatio: animationRatio,
+                            pageSize: pageSize) {
+                                image(fileName: fileName)
+                            }
+                            .frame(width: pageSize.width / 2, height: pageSize.height)
+                    } else {
+                        EmptyView()
+                    }
+                case .rightThirdPage(let fileName, let pageIndex):
+                    if let fileName = fileName {
+                        ThirdContentView(
+                            id: images[pageIndex],
+                            pageIndex: pageIndex,
+                            pageType: .right,
+                            pageSize: pageSize) {
                                 image(fileName: fileName)
                             }
                             .frame(width: pageSize.width / 2, height: pageSize.height)
@@ -339,6 +365,15 @@ private extension BookView {
         //            })
         //        ]
         var leftPageKindStack: [LeftBookPageKind] = []
+        let thirdPageIndex = currentLeftPageIndex - 4
+        if images.indices.contains(thirdPageIndex) {
+            leftPageKindStack.append(
+                .leftThirdPage(
+                    fileName: images[thirdPageIndex],
+                    pageIndex: thirdPageIndex
+                )
+            )
+        }
         let secondPageIndex = currentLeftPageIndex - 2
         if images.indices.contains(secondPageIndex) {
             leftPageKindStack.append(
@@ -367,7 +402,8 @@ private extension BookView {
                         id: images[currentLeftPageIndex - 2],
                         pageIndex: currentLeftPageIndex - 2,
                         pageType: .left,
-                        animationRatio: leftAnimationRatio) {
+                        animationRatio: leftAnimationRatio,
+                        pageSize: pageSize) {
                             image(fileName: images[currentLeftPageIndex - 2])
                         }
                 } else {
@@ -413,6 +449,15 @@ private extension BookView {
         //            })
         //        ]
         var rightPageKindStack: [RightBookPageKind] = []
+        let thirdPageIndex = currentRightPageIndex + 4
+        if images.indices.contains(thirdPageIndex) {
+            rightPageKindStack.append(
+                .rightThirdPage(
+                    fileName: images[thirdPageIndex],
+                    pageIndex: thirdPageIndex
+                )
+            )
+        }
         let secondPageIndex = currentRightPageIndex + 2
         if images.indices.contains(secondPageIndex) {
             rightPageKindStack.append(
@@ -442,7 +487,8 @@ private extension BookView {
                         id: images[currentRightPageIndex + 2],
                         pageIndex: currentRightPageIndex + 2,
                         pageType: .right,
-                        animationRatio: rightAnimationRatio) {
+                        animationRatio: rightAnimationRatio,
+                        pageSize: pageSize) {
                             image(fileName: images[currentRightPageIndex + 2])
                         }
                 } else {
@@ -478,6 +524,7 @@ private extension BookView {
 enum LeftBookPageKind: Identifiable {
     case leftTopPage(backFileName: String, frontFileName: String?, frontPageIndex: Int)
     case leftSecondPage(fileName: String, pageIndex: Int)
+    case leftThirdPage(fileName: String, pageIndex: Int)
 
     var id: String {
         return pageIndex.description
@@ -489,6 +536,8 @@ enum LeftBookPageKind: Identifiable {
             return pageIndex
         case .leftSecondPage(_, let pageIndex):
             return pageIndex
+        case .leftThirdPage(_, let pageIndex):
+            return pageIndex
         }
     }
 }
@@ -497,6 +546,7 @@ enum RightBookPageKind: Identifiable {
 
     case rightTopPage(frontFileName: String, backFileName: String?, frontPageIndex: Int)
     case rightSecondPage(fileName: String?, pageIndex: Int)
+    case rightThirdPage(fileName: String?, pageIndex: Int)
 
     var id: String {
         return pageIndex.description
@@ -507,6 +557,8 @@ enum RightBookPageKind: Identifiable {
         case .rightTopPage(_, _, let pageIndex):
             return pageIndex
         case .rightSecondPage(_, let pageIndex):
+            return pageIndex
+        case .rightThirdPage(_, let pageIndex):
             return pageIndex
         }
     }
@@ -579,12 +631,11 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
         switch pageType {
         case .left:
             pagingRatioToHalfRatio = abs(angleDegrees - 90) / 90
-            print(pagingRatioToHalfRatio)
         case .right:
             pagingRatioToHalfRatio = abs(angleDegrees + 90) / 90
-            print(pagingRatioToHalfRatio)
         }
         let minRatio = 0.5
+        // 0.5~1.0の幅に調整
         let adjustedRatio = minRatio + (1 - minRatio) * pagingRatioToHalfRatio
         return pageSize.width / 2 * (adjustedRatio)
     }
@@ -592,32 +643,16 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
     private var leftTopPageLeftMargin: CGFloat {
         if pageType == .left {
             return pageSize.width / 2 - viewWidth
-            if angleDegrees > 90 {
-                return 0
-            } else {
-            }
         } else {
             return 0
-            if angleDegrees < 90 {
-            } else {
-                return pageSize.width / 2 - viewWidth
-            }
         }
     }
 
     private var rightTopPageRightMargin: CGFloat {
         if pageType == .left {
             return 0
-            if angleDegrees < 90 {
-            } else {
-                return pageSize.width / 2 - viewWidth
-            }
         } else {
             return pageSize.width / 2 - viewWidth
-            if angleDegrees > 90 {
-                return 0
-            } else {
-            }
         }
     }
 
@@ -679,6 +714,69 @@ struct SecondContentView<Content: View>: View, BookPageViewProtocol {
     let pageIndex: Int
     let pageType: PageDirectionType
     let animationRatio: CGFloat
+    let pageSize: CGSize
+    @ViewBuilder let content: () -> Content
+
+    private var angleDegrees: CGFloat {
+        return  pageType.defaultAngle * animationRatio
+    }
+
+    private var viewWidth: CGFloat {
+        let pagingRatioToHalfRatio: CGFloat
+        switch pageType {
+        case .left:
+            pagingRatioToHalfRatio = abs(angleDegrees - 90) / 90
+        case .right:
+            pagingRatioToHalfRatio = abs(angleDegrees + 90) / 90
+        }
+        let minRatio = 0.5
+        let adjustedRatio = minRatio + (1 - minRatio) * pagingRatioToHalfRatio
+        return pageSize.width / 2 * (adjustedRatio)
+    }
+
+    private var leftTopPageLeftMargin: CGFloat {
+        if pageType == .left {
+            return pageSize.width / 2 - viewWidth
+        } else {
+            return 0
+        }
+    }
+
+    private var rightTopPageRightMargin: CGFloat {
+        if pageType == .left {
+            return 0
+        } else {
+            return pageSize.width / 2 - viewWidth
+        }
+    }
+
+    var body: some View {
+        HStack {
+            Spacer()
+                .frame(width: leftTopPageLeftMargin)
+            ZStack(alignment: pageType == .left ? .bottomLeading : .bottomTrailing) {
+                content()
+                PageTextView(pageIndex: pageIndex)
+            }
+            .overlay(.black.opacity((1 - animationRatio) * 0.5))
+            .rotation3DEffect(
+                Angle(degrees: angleDegrees),
+                axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
+                anchor: pageType.anchor,
+                perspective: 0.3
+            )
+            Spacer()
+                .frame(width: rightTopPageRightMargin)
+        }
+    }
+}
+
+struct ThirdContentView<Content: View>: View {
+    let pageLayerType: PageLayerType = .third
+    let id: String
+    let pageIndex: Int
+    let pageType: PageDirectionType
+    let pageSize: CGSize
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -686,13 +784,8 @@ struct SecondContentView<Content: View>: View, BookPageViewProtocol {
             content()
             PageTextView(pageIndex: pageIndex)
         }
-        .overlay(.black.opacity((1 - animationRatio) * 0.5))
-        .rotation3DEffect(
-            Angle(degrees: pageType.defaultAngle * animationRatio),
-            axis: (x: CGFloat(0), y: 0.61, z: CGFloat(0)),
-            anchor: pageType.anchor,
-            perspective: 0.3
-        )
+        .overlay(.black.opacity(0.5))
+        .frame(width: pageSize.width / 2, height: pageSize.height)
     }
 }
 
