@@ -15,11 +15,6 @@ struct BookView: View {
     private var currentRightPageIndex: Int {
         currentLeftPageIndex + 1
     }
-    //    @State private var leftPageStack: [any BookPageViewProtocol] = []
-    //    @State private var rightPageStack: [any BookPageViewProtocol] = []
-    @State private var leftPage: AnyView = AnyView(EmptyView())
-    @State private var rightPage: AnyView = AnyView(EmptyView())
-
     @State private var leftPageKindStack: [LeftBookPageKind] = []
     @State private var rightPageKindStack: [RightBookPageKind] = []
 
@@ -47,21 +42,6 @@ struct BookView: View {
         GeometryReader { geometry in
             ZStack {
                 HStack(spacing: 0) {
-                    //                    pageStackView(
-                    //                        pageStack: leftPageStack,
-                    //                        pageZIndex: leftPageIndex,
-                    //                        pageType: .left,
-                    //                        pageSize: .init(width: geometry.size.width / 2, height: geometry.size.height)
-                    //                    )
-                    //                    pageStackView(
-                    //                        pageStack: rightPageStack,
-                    //                        pageZIndex: rightPageIndex,
-                    //                        pageType: .right,
-                    //                        pageSize: .init(width: geometry.size.width / 2, height: geometry.size.height)
-                    //                    )
-
-                    //                    leftPage
-                    //                    rightPage
                     leftPageStackView(
                         pageKindStack: leftPageKindStack,
                         pageZIndex: leftPageIndex,
@@ -324,46 +304,15 @@ private extension BookView {
         .scaledToFill()
         .zIndex(pageZIndex)
     }
-
-    @ViewBuilder
-    func pageStackView(
-        pageStack: [any BookPageViewProtocol],
-        pageZIndex: Double,
-        pageType: PageDirectionType,
-        pageSize: CGSize
-    ) -> some View {
-        ZStack(alignment: .center) {
-            ForEach(0..<pageStack.count) { index in
-                //                AnyView(pageStack[index])
-            }
-        }
-        .frame(width: pageSize.width, height: pageSize.height)
-        .scaledToFill()
-        .zIndex(pageZIndex)
-    }
 }
 
 private extension BookView {
     func adjustBothPages(currentLeftPageIndex: Int, leftAnimationRatio: CGFloat, currentRightPageIndex: Int, rightAnimationRatio: CGFloat) {
         adjustLeftPages(currentLeftPageIndex: currentLeftPageIndex, leftAnimationRatio: leftAnimationRatio)
         adjustRightPages(currentRightPageIndex: currentRightPageIndex, rightAnimationRatio: rightAnimationRatio)
-
     }
 
     func adjustLeftPages(currentLeftPageIndex: Int, leftAnimationRatio: CGFloat) {
-        //        leftPageStack = [
-        //            SecondContentView(
-        //                id: images[currentLeftPageIndex - 2],
-        //                pageType: .left,
-        //                animationRatio: leftAnimationRatio) {
-        //                image(fileName: images[currentLeftPageIndex - 2])
-        //            },
-        //            TopPageView(pageType: .left, animationRatio: leftAnimationRatio, front: {
-        //                image(fileName: images[currentLeftPageIndex])
-        //            }, back: {
-        //                image(fileName: images[currentLeftPageIndex - 1])
-        //            })
-        //        ]
         var leftPageKindStack: [LeftBookPageKind] = []
         let thirdPageIndex = currentLeftPageIndex - 4
         if images.indices.contains(thirdPageIndex) {
@@ -394,60 +343,9 @@ private extension BookView {
             )
         }
         self.leftPageKindStack = leftPageKindStack
-        return
-        leftPage = AnyView(
-            ZStack(alignment: .center) {
-                if images.indices.contains(currentLeftPageIndex - 2) {
-                    SecondContentView(
-                        id: images[currentLeftPageIndex - 2],
-                        pageIndex: currentLeftPageIndex - 2,
-                        pageType: .left,
-                        animationRatio: leftAnimationRatio,
-                        pageSize: pageSize) {
-                            image(fileName: images[currentLeftPageIndex - 2])
-                        }
-                } else {
-                    EmptyView()
-                }
-                if images.indices.contains(currentLeftPageIndex - 1) {
-                    TopPageView(
-                        pageIndex: currentLeftPageIndex,
-                        pageType: .left,
-                        pageSwipeStatus: pageSwipeStatus,
-                        animationRatio: leftAnimationRatio,
-                        isFrontPageExist: images.indices.contains(currentLeftPageIndex),
-                        isBackPageExist: images.indices.contains(currentLeftPageIndex - 1),
-                        pageSize: pageSize,
-                        front: {
-                            image(fileName: images[currentLeftPageIndex])
-                        }, back: {
-                            image(fileName: images[currentLeftPageIndex - 1])
-                        }
-                    )
-                } else {
-                    EmptyView()
-                }
-            }
-                .frame(width: pageSize.width / 2, height: pageSize.height)
-                .scaledToFill()
-                .zIndex(leftPageIndex)
-        )
     }
 
     func adjustRightPages(currentRightPageIndex: Int, rightAnimationRatio: CGFloat) {
-        //        rightPageStack = [
-        //            SecondContentView(
-        //                id: images[currentRightPageIndex + 2],
-        //                pageType: .right,
-        //                animationRatio: rightAnimationRatio) {
-        //                image(fileName: images[currentRightPageIndex + 2])
-        //            },
-        //            TopPageView(pageType: .right, animationRatio: rightAnimationRatio, front: {
-        //                image(fileName: images[currentRightPageIndex])
-        //            }, back: {
-        //                image(fileName: images[currentRightPageIndex + 1])
-        //            })
-        //        ]
         var rightPageKindStack: [RightBookPageKind] = []
         let thirdPageIndex = currentRightPageIndex + 4
         if images.indices.contains(thirdPageIndex) {
@@ -478,45 +376,6 @@ private extension BookView {
             )
         }
         self.rightPageKindStack = rightPageKindStack
-        return
-
-        rightPage = AnyView(
-            ZStack(alignment: .center) {
-                if images.indices.contains(currentRightPageIndex + 2) {
-                    SecondContentView(
-                        id: images[currentRightPageIndex + 2],
-                        pageIndex: currentRightPageIndex + 2,
-                        pageType: .right,
-                        animationRatio: rightAnimationRatio,
-                        pageSize: pageSize) {
-                            image(fileName: images[currentRightPageIndex + 2])
-                        }
-                } else {
-                    EmptyView()
-                }
-                if images.indices.contains(currentRightPageIndex) {
-                    TopPageView(
-                        pageIndex: currentRightPageIndex,
-                        pageType: .right,
-                        pageSwipeStatus: pageSwipeStatus,
-                        animationRatio: rightAnimationRatio,
-                        isFrontPageExist: images.indices.contains(currentRightPageIndex),
-                        isBackPageExist: images.indices.contains(currentRightPageIndex + 1),
-                        pageSize: pageSize,
-                        front: {
-                            image(fileName: images[currentRightPageIndex])
-                        }, back: {
-                            image(fileName: images[currentRightPageIndex + 1])
-                        }
-                    )
-                } else {
-                    EmptyView()
-                }
-            }
-                .frame(width: pageSize.width / 2, height: pageSize.height)
-                .scaledToFill()
-                .zIndex(rightPageIndex)
-        )
     }
 }
 
@@ -800,7 +659,6 @@ private struct PageTextView: View {
             .padding()
     }
 }
-
 
 #Preview {
     BookView()
