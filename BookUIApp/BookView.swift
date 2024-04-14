@@ -11,7 +11,7 @@ import Observation
 struct BookView: View {
     let images = Array(0...10).map({ "image\($0.remainderReportingOverflow(dividingBy: 6).partialValue)" })
 
-    @State private var currentLeftPageIndex = 3
+    @State private var currentLeftPageIndex = 1
     private var currentRightPageIndex: Int {
         currentLeftPageIndex + 1
     }
@@ -59,12 +59,12 @@ struct BookView: View {
                 }
             }
             .ignoresSafeArea()
-            .rotation3DEffect(
-                Angle(degrees: 20),
-                axis: (x: CGFloat(6), y: 0, z: CGFloat(0)),
-                anchor: .center,
-                perspective: 1
-            )
+            //            .rotation3DEffect(
+            //                Angle(degrees: 20),
+            //                axis: (x: CGFloat(6), y: 0, z: CGFloat(0)),
+            //                anchor: .center,
+            //                perspective: 1
+            //            )
             // Left page
             .gesture(
                 DragGesture()
@@ -194,46 +194,52 @@ private extension BookView {
         pageSize: CGSize
     ) -> some View {
         ZStack(alignment: .center) {
-            ForEach(pageKindStack, id: \.id) { kind in
-                switch kind {
-                case .leftTopPage(let backFileName, let frontFileName, let frontPageIndex):
-                    TopPageView(
-                        pageIndex: currentLeftPageIndex,
-                        pageType: .left,
-                        pageSwipeStatus: pageSwipeStatus,
-                        animationRatio: animationRatio,
-                        isFrontPageExist: images.indices.contains(frontPageIndex),
-                        isBackPageExist: images.indices.contains(frontPageIndex - 1),
-                        pageSize: pageSize,
-                        front: {
-                            if let frontFileName = frontFileName {
-                                image(fileName: frontFileName)
-                            } else {
-                                EmptyView()
+            if pageKindStack.isEmpty {
+                Spacer()
+                    .frame(width: pageSize.width / 2)
+            } else {
+                ForEach(pageKindStack, id: \.id) { kind in
+                    switch kind {
+                    case .leftTopPage(let backFileName, let frontFileName, let frontPageIndex):
+                        TopPageView(
+                            pageIndex: currentLeftPageIndex,
+                            pageType: .left,
+                            pageSwipeStatus: pageSwipeStatus,
+                            animationRatio: animationRatio,
+                            isFrontPageExist: images.indices.contains(frontPageIndex),
+                            isBackPageExist: images.indices.contains(frontPageIndex - 1),
+                            pageSize: pageSize,
+                            front: {
+                                if let frontFileName = frontFileName {
+                                    image(fileName: frontFileName)
+                                } else {
+                                    Spacer()
+                                        .frame(width: pageSize.width / 2)
+                                }
+                            }, back: {
+                                image(fileName: backFileName)
                             }
-                        }, back: {
-                            image(fileName: backFileName)
-                        }
-                    )
-                case .leftSecondPage(let fileName, let pageIndex):
-                    SecondContentView(
-                        id: images[currentLeftPageIndex - 2],
-                        pageIndex: pageIndex,
-                        pageType: .left,
-                        animationRatio: animationRatio,
-                        pageSize: pageSize) {
-                            image(fileName: fileName)
-                        }
-                        .frame(width: pageSize.width / 2, height: pageSize.height)
-                case .leftThirdPage(let fileName, let pageIndex):
-                    ThirdContentView(
-                        id: images[currentLeftPageIndex - 2],
-                        pageIndex: pageIndex,
-                        pageType: .left,
-                        pageSize: pageSize) {
-                            image(fileName: fileName)
-                        }
-                        .frame(width: pageSize.width / 2, height: pageSize.height)
+                        )
+                    case .leftSecondPage(let fileName, let pageIndex):
+                        SecondContentView(
+                            id: images[currentLeftPageIndex - 2],
+                            pageIndex: pageIndex,
+                            pageType: .left,
+                            animationRatio: animationRatio,
+                            pageSize: pageSize) {
+                                image(fileName: fileName)
+                            }
+                            .frame(width: pageSize.width / 2, height: pageSize.height)
+                    case .leftThirdPage(let fileName, let pageIndex):
+                        ThirdContentView(
+                            id: images[currentLeftPageIndex - 2],
+                            pageIndex: pageIndex,
+                            pageType: .left,
+                            pageSize: pageSize) {
+                                image(fileName: fileName)
+                            }
+                            .frame(width: pageSize.width / 2, height: pageSize.height)
+                    }
                 }
             }
         }
@@ -267,7 +273,8 @@ private extension BookView {
                             if let backFileName = backFileName {
                                 image(fileName: backFileName)
                             } else  {
-                                EmptyView()
+                                Spacer()
+                                    .frame(width: pageSize.width / 2)
                             }
                         }
                     )
@@ -283,7 +290,8 @@ private extension BookView {
                             }
                             .frame(width: pageSize.width / 2, height: pageSize.height)
                     } else {
-                        EmptyView()
+                        Spacer()
+                            .frame(width: pageSize.width / 2)
                     }
                 case .rightThirdPage(let fileName, let pageIndex):
                     if let fileName = fileName {
@@ -296,7 +304,8 @@ private extension BookView {
                             }
                             .frame(width: pageSize.width / 2, height: pageSize.height)
                     } else {
-                        EmptyView()
+                        Spacer()
+                            .frame(width: pageSize.width / 2)
                     }
                 }
             }
@@ -342,6 +351,12 @@ private extension BookView {
                 )
             )
         }
+        //        if leftPageKindStack.count < PageLayerType.allCases.count {
+        //            leftPageKindStack.insert(.leftFrontPage(pageIndex: 0), at: 0)
+        //        }
+        //        if currentLeftPageIndex == images.count - 1 {
+        //            leftPageKindStack.append(.leftBackPage(pageIndex: images.count))
+        //        }
         self.leftPageKindStack = leftPageKindStack
     }
 

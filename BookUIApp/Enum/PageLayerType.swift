@@ -7,9 +7,8 @@
 
 import Foundation
 
-enum PageLayerType {
+enum PageLayerType: CaseIterable {
     case top
     case second
     case third
-    case empty
 }
