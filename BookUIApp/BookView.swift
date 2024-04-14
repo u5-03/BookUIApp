@@ -18,8 +18,7 @@ struct BookView: View {
     @State private var leftPageKindStack: [LeftBookPageKind] = []
     @State private var rightPageKindStack: [RightBookPageKind] = []
 
-    @State private var leftAnimationRatio: CGFloat = 0
-    @State private var rightAnimationRatio: CGFloat = 0
+    @State private var animationRatio: CGFloat = 0
 
     @State private var pageSwipeStatus: PageSwipeStatus = .notSwipe
     @State private var pageSize: CGSize = .zero
@@ -30,7 +29,7 @@ struct BookView: View {
         return pageSwipeStatus == .left ? 1 : 0
     }
     private let animationDuration: CGFloat = 0.5
-    private let animationBounce: CGFloat = 0.5
+    private let animationBounce: CGFloat = 0.3
 
     func image(fileName: String) -> some View {
         return Image(fileName)
@@ -46,14 +45,14 @@ struct BookView: View {
                         pageKindStack: leftPageKindStack,
                         pageZIndex: leftPageIndex,
                         pageType: .left,
-                        animationRatio: leftAnimationRatio,
+                        animationRatio: animationRatio,
                         pageSize: pageSize
                     )
                     rightPageStackView(
                         pageKindStack: rightPageKindStack,
                         pageZIndex: rightPageIndex,
                         pageType: .right,
-                        animationRatio: rightAnimationRatio,
+                        animationRatio: animationRatio,
                         pageSize: pageSize
                     )
                 }
@@ -78,7 +77,7 @@ struct BookView: View {
                                 geometry.size.width
                             )
                             let leftAnimationRatio = min(dragXAmount / geometry.size.width, 1)
-                            self.leftAnimationRatio = leftAnimationRatio
+                            animationRatio = leftAnimationRatio
                             adjustBothPages(
                                 currentLeftPageIndex: currentLeftPageIndex,
                                 leftAnimationRatio: leftAnimationRatio,
@@ -99,7 +98,7 @@ struct BookView: View {
                                     currentLeftPageIndex: currentLeftPageIndex,
                                     leftAnimationRatio: isInLeftPage ? 0 : 1
                                 )
-                                self.leftAnimationRatio = isInLeftPage ? 0 : 1
+                                self.animationRatio = isInLeftPage ? 0 : 1
                             } completion: {
                                 if !isInLeftPage {
                                     currentLeftPageIndex -= 2
@@ -111,7 +110,7 @@ struct BookView: View {
                                     currentRightPageIndex: currentRightPageIndex,
                                     rightAnimationRatio: 0
                                 )
-                                self.leftAnimationRatio = 0
+                                animationRatio = 0
                             }
                         }
                     }
@@ -129,7 +128,7 @@ struct BookView: View {
                                 geometry.size.width
                             )
                             let rightAnimationRatio = min(dragXAmount / geometry.size.width, 1)
-                            self.rightAnimationRatio = rightAnimationRatio
+                            animationRatio = rightAnimationRatio
                             adjustBothPages(
                                 currentLeftPageIndex: currentLeftPageIndex,
                                 leftAnimationRatio: rightAnimationRatio,
@@ -150,7 +149,7 @@ struct BookView: View {
                                     currentRightPageIndex: currentRightPageIndex,
                                     rightAnimationRatio: isInRightPage ? 0 : 1
                                 )
-                                self.rightAnimationRatio = isInRightPage ? 0 : 1
+                                animationRatio = isInRightPage ? 0 : 1
 
                             } completion: {
                                 if !isInRightPage {
@@ -163,7 +162,7 @@ struct BookView: View {
                                     currentRightPageIndex: currentRightPageIndex,
                                     rightAnimationRatio: 0
                                 )
-                                self.rightAnimationRatio = 0
+                                animationRatio = 0
 
                             }
                         }
@@ -224,6 +223,7 @@ private extension BookView {
                         SecondContentView(
                             id: images[currentLeftPageIndex - 2],
                             pageIndex: pageIndex,
+                            pageSwipeStatus: pageSwipeStatus,
                             pageType: .left,
                             animationRatio: animationRatio,
                             pageSize: pageSize) {
@@ -283,6 +283,7 @@ private extension BookView {
                         SecondContentView(
                             id: images[pageIndex],
                             pageIndex: pageIndex,
+                            pageSwipeStatus: pageSwipeStatus,
                             pageType: .right,
                             animationRatio: animationRatio,
                             pageSize: pageSize) {
@@ -487,7 +488,7 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
         if isPageTurning {
             return pageType.defaultAngle + animationRatio * pageType.moveMaxAngle
         } else {
-            return pageType.defaultAngle
+            return pageType.defaultAngle * (1 - animationRatio)
         }
     }
 
@@ -586,13 +587,29 @@ struct SecondContentView<Content: View>: View, BookPageViewProtocol {
     let pageLayerType: PageLayerType = .second
     let id: String
     let pageIndex: Int
+    let pageSwipeStatus: PageSwipeStatus
     let pageType: PageDirectionType
     let animationRatio: CGFloat
     let pageSize: CGSize
     @ViewBuilder let content: () -> Content
 
+    private var isPageTurning: Bool {
+        switch pageSwipeStatus {
+        case .left:
+            return pageType == .right
+        case .right:
+            return pageType == .left
+        case .notSwipe:
+            return false
+        }
+    }
+
     private var angleDegrees: CGFloat {
-        return  pageType.defaultAngle * animationRatio
+        if isPageTurning {
+            return pageType.defaultAngle * animationRatio
+        } else {
+            return pageType.defaultAngle * -animationRatio
+        }
     }
 
     private var viewWidth: CGFloat {
