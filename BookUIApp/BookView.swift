@@ -562,12 +562,6 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
             return pageType.defaultAngle + animationRatio * pageType.moveMaxAngle
         } else {
             return pageType.defaultAngle
-            switch pageType {
-            case .left:
-                return pageType.defaultAngle + 10
-            case .right:
-                return pageType.defaultAngle - 10
-            }
         }
     }
 
@@ -581,20 +575,30 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
     }
 
     private var viewWidth: CGFloat {
-        let pagingRatioToHalfRatio = abs(angleDegrees - 90) / 90
-        return pageSize.width / 2 * (pagingRatioToHalfRatio * 0.9)
+        let pagingRatioToHalfRatio: CGFloat
+        switch pageType {
+        case .left:
+            pagingRatioToHalfRatio = abs(angleDegrees - 90) / 90
+            print(pagingRatioToHalfRatio)
+        case .right:
+            pagingRatioToHalfRatio = abs(angleDegrees + 90) / 90
+            print(pagingRatioToHalfRatio)
+        }
+        let minRatio = 0.5
+        let adjustedRatio = minRatio + (1 - minRatio) * pagingRatioToHalfRatio
+        return pageSize.width / 2 * (adjustedRatio)
     }
 
     private var leftTopPageLeftMargin: CGFloat {
         if pageType == .left {
+            return pageSize.width / 2 - viewWidth
             if angleDegrees > 90 {
                 return 0
             } else {
-                return pageSize.width / 2 - viewWidth
             }
         } else {
+            return 0
             if angleDegrees < 90 {
-                return 0
             } else {
                 return pageSize.width / 2 - viewWidth
             }
@@ -603,24 +607,24 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
 
     private var rightTopPageRightMargin: CGFloat {
         if pageType == .left {
+            return 0
             if angleDegrees < 90 {
-                return 0
             } else {
                 return pageSize.width / 2 - viewWidth
             }
         } else {
+            return pageSize.width / 2 - viewWidth
             if angleDegrees > 90 {
                 return 0
             } else {
-                return pageSize.width / 2 - viewWidth
             }
         }
     }
 
     var body: some View {
         HStack {
-//            Spacer()
-//                .frame(width: leftTopPageLeftMargin)
+            Spacer()
+                .frame(width: leftTopPageLeftMargin)
             ZStack(alignment: .center) {
                 if !isPageTurning || animationRatio < 0.5 {
                     ZStack(alignment: pageType == .left ? .bottomLeading : .bottomTrailing) {
@@ -662,10 +666,9 @@ struct TopPageView<FrontContent: View, BackContent: View>:View, BookPageViewProt
                 anchor: pageType.anchor,
                 perspective: 0.3
             )
-            .frame(width: pageSize.width / 2, height: pageSize.height)
-//            .frame(width: viewWidth, height: pageSize.height)
-//            Spacer()
-//                .frame(width: rightTopPageRightMargin)
+            .frame(width: viewWidth, height: pageSize.height)
+            Spacer()
+                .frame(width: rightTopPageRightMargin)
         }
     }
 }
